@@ -39,7 +39,7 @@ flowchart LR
 
 **Two buy paths, both from Shop MCP:**
 
-1. **Buy now** (primary) opens the offer's `checkout_url` from `search_catalog` exactly as returned. It redirects to the merchant's Shop Pay checkout page. That page lets a guest check out (tested with an iPhone user agent), so a judge can buy without a Shop account.
+1. **Buy now** (primary) opens the offer's `checkout_url` from `search_catalog` exactly as returned. It redirects to the merchant's Shop Pay checkout page. That page shows **"Check out as guest"**. Nobodit confirmed this on an iPhone, and it was also checked with curl using an iPhone user agent. So a judge can buy without a Shop account.
 2. **"or checkout with Shop"** (secondary) calls `create_checkout` and opens its `continue_url` (`shop.app/checkouts/r/…`) unchanged. On a phone this path asks you to sign in to Shop. Buy now also falls back to it if an offer has no `checkout_url`.
 
 Shop rules we follow: products are fetched live on every request (no caching), merchant images load from their original URLs,

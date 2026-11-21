@@ -25,7 +25,7 @@ The submission is a public GitHub repo (this one) plus a 1-minute demo video, **
 | 3 | Eval harness: full vs baseline, top-3 hit rate, LLM judge, latency, failure log; clip-collection page | ✅ Done. `eval/eval.py`, `/eval-upload`; 17 public sample clips evaluated |
 | 4 | README: pitch, theme fit, architecture, setup, results, limitations, demo script | ✅ Done |
 | 4b | Phone-upload hardening: progress bar, in-browser shrink to 720p, keyframe fallback, multi-image analyze | ✅ Done |
-| 4c | Guest-friendly purchase: Buy now → offer `checkout_url`; `create_checkout` as fallback | ✅ Done |
+| 4c | Guest-friendly purchase: Buy now → offer `checkout_url`; `create_checkout` as fallback | ✅ Done. "Check out as guest" confirmed on iPhone |
 | 5 | **Rerun the eval on 20–30 real messy phone clips** filmed at the venue (`/eval-upload` → `eval/eval.py`); put the numbers in the README and demo script | ⏳ Remaining |
 | 6 | **Record the 1-minute demo video** (script in README) | ⏳ Remaining |
 | 7 | **Submit** (repo public, video, form) **by 5:00 PM ET**, aiming for 4:45 | ⏳ Remaining |
