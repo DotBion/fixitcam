@@ -45,6 +45,28 @@ def video_duration(video_path: str) -> float:
         return 0.0
 
 
+def _frame_time(name: str, i: int) -> float:
+    import re
+    m = re.search(r"_t([0-9.]+)s", name or "")
+    return float(m.group(1)) if m else float(i)
+
+
+def frames_parts(paths: list[str], mimes: list[str], names: list[str]) -> list:
+    """Several keyframes of one clip, in order -> interleaved [label, image, label, image, ...]."""
+    parts: list = [f"The following {len(paths)} images are keyframes from ONE short phone clip, in time order. "
+                   "Treat them as a video; timestamps are given per frame."]
+    for i, (p, m) in enumerate(zip(paths, mimes)):
+        t = _frame_time(names[i] if i < len(names) else "", i)
+        parts.append(f"Frame {i+1} at {int(t)//60:02d}:{int(t)%60:02d} ({t:.1f}s):")
+        parts.append(types.Part.from_bytes(data=open(p, "rb").read(), mime_type=m))
+    return parts
+
+
+def nearest_frame(names: list[str], seconds: float) -> int:
+    ts = [_frame_time(n, i) for i, n in enumerate(names)]
+    return min(range(len(ts)), key=lambda i: abs(ts[i] - seconds)) if ts else 0
+
+
 async def media_part(path: str, mime: str):
     if is_video(mime):
         return await gemini.upload_media(path, mime)

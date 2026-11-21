@@ -15,6 +15,7 @@ load_dotenv()
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile  # noqa: E402
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from . import gemini, pipeline  # noqa: E402
@@ -24,6 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "200"))
 
 app = FastAPI(title="Fix-It Cam")
+app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
 
 @app.get("/")
@@ -41,23 +43,42 @@ def _ev(kind: str, **data) -> bytes:
     return (json.dumps({"event": kind, **data}) + "\n").encode()
 
 
-@app.post("/api/analyze")
-async def analyze(file: UploadFile = File(...), note: str = Form("")):
-    mime = file.content_type or mimetypes.guess_type(file.filename or "")[0] or "application/octet-stream"
+async def _save_upload(f: UploadFile) -> tuple[str, str]:
+    mime = f.content_type or mimetypes.guess_type(f.filename or "")[0] or "application/octet-stream"
+    if mime == "application/octet-stream" and (f.filename or "").lower().endswith((".mov", ".mp4", ".webm")):
+        mime = mimetypes.guess_type(f.filename)[0] or "video/mp4"
     if not (mime.startswith("video/") or mime.startswith("image/")):
         raise HTTPException(400, f"Please upload a video or photo (got {mime}).")
-    suffix = Path(file.filename or "clip").suffix or (".mp4" if mime.startswith("video/") else ".jpg")
+    suffix = Path(f.filename or "clip").suffix or (".mp4" if mime.startswith("video/") else ".jpg")
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     size = 0
-    while chunk := await file.read(1 << 20):
+    while chunk := await f.read(1 << 20):
         size += len(chunk)
         if size > MAX_UPLOAD_MB << 20:
             tmp.close(); os.unlink(tmp.name)
-            raise HTTPException(413, f"File too large (max {MAX_UPLOAD_MB} MB)")
+            raise HTTPException(413, f"File too large (max {MAX_UPLOAD_MB} MB). Keep clips 5-10 s.")
         tmp.write(chunk)
     tmp.close()
-    path = tmp.name
-    # Phones often send video/quicktime; Gemini accepts it, keep as-is.
+    return tmp.name, mime
+
+
+@app.post("/api/analyze")
+async def analyze(files: list[UploadFile] = File(default=[]), file: UploadFile | None = File(default=None),
+                  note: str = Form("")):
+    """Accepts one video, one photo, or several photos (keyframes of a clip, in order)."""
+    uploads = ([file] if file else []) + list(files or [])
+    if not uploads:
+        raise HTTPException(400, "No file uploaded")
+    saved = [await _save_upload(f) for f in uploads[:16]]
+    videos = [s for s in saved if s[1].startswith("video/")]
+    if videos:
+        path, mime = videos[0]
+        extra_paths = [p for p, _ in saved if p != path]
+    else:
+        path, mime = saved[0]
+        extra_paths = [p for p, _ in saved[1:]]
+    frame_paths = [p for p, _ in saved] if not videos and len(saved) > 1 else None
+    frame_names = [f.filename or "" for f in uploads[:16]]
 
     async def stream():
         shop = ShopMCP()
@@ -66,7 +87,10 @@ async def analyze(file: UploadFile = File(...), note: str = Form("")):
         try:
             yield _ev("stage", stage="upload", label="Sending footage to Gemini 4…")
             t = time.time()
-            part = await pipeline.media_part(path, mime)
+            if frame_paths:
+                part = pipeline.frames_parts(frame_paths, [m for _, m in saved], frame_names)
+            else:
+                part = await pipeline.media_part(path, mime)
             timings["upload_s"] = round(time.time() - t, 2)
             yield _ev("stage", stage="diagnose", label=f"{gemini.IDENTIFY_MODEL} is watching the clip…")
             t = time.time()
@@ -78,6 +102,9 @@ async def analyze(file: UploadFile = File(...), note: str = Form("")):
             if pipeline.is_video(mime):
                 fb = await asyncio.to_thread(pipeline.extract_frame, path, float(diag.get("best_frame_seconds") or 0))
                 frame = (fb, "image/jpeg") if fb else None
+            elif frame_paths:
+                i = pipeline.nearest_frame(frame_names, float(diag.get("best_frame_seconds") or 0))
+                frame = (open(frame_paths[i], "rb").read(), saved[i][1])
             else:
                 frame = (open(path, "rb").read(), mime)
             yield _ev("stage", stage="search", label="Searching Shop catalog by words and by keyframe photo…")
@@ -106,10 +133,11 @@ async def analyze(file: UploadFile = File(...), note: str = Form("")):
             yield _ev("error", message=str(e)[:400])
         finally:
             await shop.aclose()
-            try:
-                os.unlink(path)
-            except OSError:
-                pass
+            for p, _ in saved:
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
 
     return StreamingResponse(stream(), media_type="application/x-ndjson",
                              headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})

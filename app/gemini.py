@@ -94,7 +94,7 @@ async def diagnose(media_part, extra_note: str = "", model: str | None = None) -
     prompt = DIAGNOSIS_PROMPT + (f"\nUser note: {extra_note}" if extra_note else "")
     r = await client().aio.models.generate_content(
         model=model or IDENTIFY_MODEL,
-        contents=[media_part, prompt],
+        contents=(list(media_part) if isinstance(media_part, list) else [media_part]) + [prompt],
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
             response_json_schema=DIAGNOSIS_SCHEMA,

@@ -57,7 +57,7 @@ footer{color:var(--mut);font-size:12px;text-align:center;margin-top:28px}
   <header><div class="logo">🔧</div><h1>Fix-It Cam<small>Film the broken thing. Gemini 4 finds the part. Buy it in one tap.</small></h1></header>
 
   <section class="hero">
-    <p>Point your camera at what's broken for 5–10 seconds. Show labels, connectors and the damage, and say anything you know out loud.</p>
+    <p><b>Keep clips 5–10 s.</b> Point your camera at what's broken. Show labels, connectors and the damage, and say anything you know out loud.</p>
     <div class="btns">
       <label class="btn pri" for="cam">🎥 Film it</label>
       <label class="btn sec" for="pick">⬆️ Upload</label>
@@ -68,6 +68,7 @@ footer{color:var(--mut);font-size:12px;text-align:center;margin-top:28px}
     <div id="preview"></div>
     <div class="btns" style="margin-top:12px"><button id="go" class="btn pri" disabled>Diagnose &amp; find the part</button></div>
     <ul class="stages" id="stages"></ul>
+    <div id="prog" class="hidden" style="margin-top:8px"><div style="height:8px;background:#222833;border-radius:6px;overflow:hidden"><div id="bar" style="height:100%;width:0;background:var(--acc);transition:width .2s"></div></div><div id="progt" class="conf" style="margin-top:6px"></div></div>
   </section>
 
   <section id="diag"></section>
@@ -75,6 +76,7 @@ footer{color:var(--mut);font-size:12px;text-align:center;margin-top:28px}
   <div id="timings" class="timings"></div>
   <footer>Live products via Shop MCP • checkouts are real: you review &amp; pay on the merchant's page • Powered by Gemini 4</footer>
 </main>
+<script src="/static/upload.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 let file=null, videoEl=null;
@@ -129,17 +131,27 @@ async function buy(p,btn){
     btn.textContent='Checkout opened ✓';
   }catch(e){ if(w) w.close(); btn.textContent='Retry'; btn.disabled=false; alert(e.message) }
 }
+function setProg(pct,text){ $('#prog').classList.remove('hidden'); if(pct!=null) $('#bar').style.width=pct+'%'; $('#progt').textContent=text||'' }
 $('#go').onclick=async()=>{
   if(!file) return; $('#go').disabled=true; $('#stages').innerHTML='';$('#diag').innerHTML='';$('#results').innerHTML='';$('#timings').textContent='';
-  const fd=new FormData(); fd.append('file',file); fd.append('note',$('#note').value);
-  stage('send','Uploading…');
+  const U=window.FixItUpload; let buf='';
   try{
-    const r=await fetch('/api/analyze',{method:'POST',body:fd});
-    if(!r.ok){throw new Error((await r.json().catch(()=>({}))).detail||('HTTP '+r.status))}
-    const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
-    for(;;){const {value,done}=await rd.read(); if(done)break; buf+=dec.decode(value,{stream:true});
-      let i; while((i=buf.indexOf('\n'))>=0){const line=buf.slice(0,i);buf=buf.slice(i+1); if(!line.trim())continue; handle(JSON.parse(line))}}
-  }catch(e){ $('#results').innerHTML=`<div class="card err">${esc(e.message)}</div>` }
+    let prep={files:[file],mode:'original'};
+    if(file.size>U.SHRINK_OVER && file.type.startsWith('video/')){
+      stage('shrink',`Big clip (${U.fmtMB(file.size)}): shrinking on your phone first…`);
+      prep=await U.prepare(file,t=>setProg(null,t));
+    }
+    const fd=new FormData(); prep.files.forEach(f=>fd.append('files',f,f.name)); fd.append('note',$('#note').value);
+    const total=prep.files.reduce((a,f)=>a+f.size,0);
+    stage('send',`Uploading ${prep.mode==='frames'?prep.files.length+' keyframes':'clip'} (${U.fmtMB(total)})…`);
+    setProg(0,`0 / ${U.fmtMB(total)}`);
+    let lastT=Date.now(),lastB=0;
+    await U.upload('/api/analyze',fd,{
+      onProgress:(b,t)=>{const T=t||total; setProg(Math.round(100*b/T),`${U.fmtMB(b)} / ${U.fmtMB(T)} uploaded (${Math.round(100*b/T)}%)`); if(b>=T) setProg(100,'Uploaded ✓ Gemini 4 is on it…')},
+      onChunk:txt=>{buf+=txt;let i;while((i=buf.indexOf('\n'))>=0){const line=buf.slice(0,i);buf=buf.slice(i+1);if(line.trim())handle(JSON.parse(line))}}
+    });
+    $('#prog').classList.add('hidden');
+  }catch(e){ $('#results').innerHTML=`<div class="card err">${esc(e.message)}</div>`; $('#progt').textContent='' }
   finishStages(); $('#go').disabled=false;
 };
 function handle(ev){
