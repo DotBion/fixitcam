@@ -6,3 +6,5 @@ uploads/
 eval/clips/*
 !eval/clips/.gitkeep
 eval/results/
+eval/samples/*.mp4
+eval/samples/*.jpg

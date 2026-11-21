@@ -1,0 +1,10 @@
+{
+  "macbook_cable_clean.mp4": {"keywords": ["magsafe"], "description": "frayed Apple MagSafe MacBook charger cable"},
+  "macbook_cable_messy.mp4": {"keywords": ["magsafe"], "description": "frayed Apple MagSafe MacBook charger cable"},
+  "aerator_clean.mp4": {"keywords": ["aerator"], "description": "worn swivel faucet aerator"},
+  "aerator_messy.mp4": {"keywords": ["aerator"], "description": "worn swivel faucet aerator"},
+  "brakepads_clean.mp4": {"keywords": ["brake pad"], "description": "worn metallic disc brake pads"},
+  "brakepads_messy.mp4": {"keywords": ["brake pad"], "description": "worn metallic disc brake pads"},
+  "umbrella_clean.mp4": {"keywords": ["umbrella"], "description": "broken umbrella with bent ribs"},
+  "umbrella_messy.mp4": {"keywords": ["umbrella"], "description": "broken umbrella with bent ribs"}
+}
