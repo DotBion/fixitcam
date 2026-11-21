@@ -139,6 +139,62 @@ async def checkout(req: CheckoutReq):
     return {"continue_url": url, "status": r.get("status"), "total_minor": total, "currency": r.get("currency")}
 
 
+# ---------------------------------------------------------------------------
+# Eval clip collection: bulk-upload messy phone clips with expected part keywords.
+EVAL_DIR = ROOT / "eval" / "clips"
+LABELS = EVAL_DIR / "labels.json"
+EVAL_UPLOAD_KEY = os.getenv("EVAL_UPLOAD_KEY", "")
+
+
+def _check_key(k: str):
+    if EVAL_UPLOAD_KEY and k != EVAL_UPLOAD_KEY:
+        raise HTTPException(403, "Bad or missing upload key (?k=...)")
+
+
+def _load_labels() -> dict:
+    try:
+        return json.loads(LABELS.read_text())
+    except Exception:
+        return {}
+
+
+@app.get("/eval-upload")
+async def eval_upload_page(k: str = ""):
+    _check_key(k)
+    return FileResponse(ROOT / "static" / "eval_upload.html", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/eval-clips")
+async def eval_clips(k: str = ""):
+    _check_key(k)
+    return _load_labels()
+
+
+@app.post("/api/eval-upload")
+async def eval_upload(files: list[UploadFile] = File(...), keywords: str = Form(...),
+                      description: str = Form(""), k: str = Form("")):
+    _check_key(k)
+    kws = [w.strip() for w in keywords.replace(";", ",").split(",") if w.strip()]
+    if not kws:
+        raise HTTPException(400, "Give at least one expected keyword")
+    EVAL_DIR.mkdir(parents=True, exist_ok=True)
+    labels = _load_labels()
+    saved = []
+    for f in files:
+        mime = f.content_type or mimetypes.guess_type(f.filename or "")[0] or ""
+        if not (mime.startswith("video/") or mime.startswith("image/")):
+            continue
+        stem = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in Path(f.filename or "clip").stem)[:40]
+        name = f"{time.strftime('%H%M%S')}_{len(labels):03d}_{stem}{Path(f.filename or '').suffix.lower() or '.mp4'}"
+        with open(EVAL_DIR / name, "wb") as out:
+            while chunk := await f.read(1 << 20):
+                out.write(chunk)
+        labels[name] = {"keywords": kws, "description": description, "mime": mime}
+        saved.append(name)
+    LABELS.write_text(json.dumps(labels, indent=2))
+    return {"saved": saved, "total_clips": len(labels)}
+
+
 def main():
     import uvicorn
     uvicorn.run("app.server:app", host=os.getenv("HOST", "0.0.0.0"), port=int(os.getenv("PORT", "8000")))
