@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+uploads/
+eval/clips/*
+!eval/clips/.gitkeep
+eval/results/
