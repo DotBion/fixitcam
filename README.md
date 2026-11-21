@@ -89,25 +89,62 @@ Every miss is written to a failure log.
 
 Output goes to `eval/results/<timestamp>/` as `summary.md`, `failures.md` and `results.json`.
 
-### Results so far: synthetic smoke set (8 clips = 4 items × clean/messy)
+### Results so far: 17 public sample clips (`eval/samples`, sources and licenses in `eval/samples/SOURCES.md`)
 
-Each "messy" clip is a dark, low-contrast, blurred, noisy, shaky handheld pan made from public Wikimedia photos.
-These are **not** real phone footage, and the real-clip numbers below replace them.
+Sample sets:
 
-| System | kw@3 | judge@3 | median latency |
-|---|---|---|---|
-| **Fix-It Cam (full video)** | **8/8 (100%)** | **8/8 (100%)** | 19.2 s |
-| Baseline (1 frame + plain search) | 6/8 (75%) | 3/8 (38%) | 3.3 s |
+- **synthetic** (8): 4 items × a clean and a messy version (dark, blurred, noisy, shaky) built from Commons photos.
+- **real-household** (5): real handheld Commons videos: dripping faucet, bulb burning out, flickering bulb, tire leak, worn bike rim.
+- **restaurant** (4): real photos of broken commercial-kitchen parts as 8 s handheld pans: burnt blender motor, espresso group gasket, rusted cabinet hinge, immersion-blender coupling.
 
-What the baseline gets wrong (from `eval/smoke_results/failures.md`):
+| Set | System | kw@1 | kw@3 | judge@3 |
+|---|---|---|---|---|
+| **All 17** | **Fix-It Cam (full video)** | **13/17 (76%)** | **13/17 (76%)** | **11/17 (65%)** |
+| All 17 | Baseline (1 frame + plain search) | 10/17 (59%) | 11/17 (65%) | 7/17 (41%) |
+| synthetic (8) | full / baseline | 8 / 6 | 8 / 6 | **8 / 4** |
+| real-household (5) | full / baseline | 3 / 3 | 3 / 4 | 2 / 3 |
+| restaurant (4) | full / baseline | 2 / 1 | 2 / 1 | **1 / 0** |
 
-- **Right words, wrong product.** For a frayed *MacBook* MagSafe cable, the baseline searched "Apple MagSafe charger" and returned three *iPhone wireless* MagSafe chargers. Keyword match says "hit", but the judge says no. Fix-It Cam read the cable's shape and clip across frames, asked for a MagSafe 1/2 *power adapter*, and its Decisions gate pushed wireless pads down.
-- **One bad frame ruins it.** On the dark, shaky MacBook clip, the middle frame looked like a pen, and the baseline shopped for ballpoint pens. On the messy aerator clip it shopped for garden-hose couplers.
-- **Missing specs.** For worn *metallic* disc brake pads, the baseline returned resin and organic pads.
+Median latency: full 21.1 s, baseline 3.6 s.
+
+Per clip:
+
+| Clip | Set | Full kw@3 | Full judge@3 | Base kw@3 | Base judge@3 | Full latency |
+|---|---|---|---|---|---|---|
+| real_bulb_burnout | real-household | ✅ | ❌ | ✅ | ✅ | 22.79s |
+| real_dripping_faucet | real-household | ✅ | ✅ | ✅ | ✅ | 19.07s |
+| real_flickering_bulb | real-household | ❌ | ❌ | ✅ | ❌ | 24.54s |
+| real_tire_leak | real-household | ✅ | ✅ | ✅ | ✅ | 18.15s |
+| real_worn_bike_rim | real-household-hard | ❌ | ❌ | ❌ | ❌ | 30.41s |
+| kitchen_blender_burnt_motor | restaurant | ❌ | ❌ | ❌ | ❌ | 21.23s |
+| kitchen_espresso_group_gasket | restaurant | ✅ | ❌ | ❌ | ❌ | 27.49s |
+| kitchen_immersion_blender_coupling | restaurant | ❌ | ❌ | ❌ | ❌ | 52.89s |
+| kitchen_rusty_cabinet_hinge | restaurant | ✅ | ✅ | ✅ | ❌ | 20.47s |
+| aerator_clean | synthetic | ✅ | ✅ | ✅ | ✅ | 15.01s |
+| aerator_messy | synthetic | ✅ | ✅ | ❌ | ❌ | 28.36s |
+| brakepads_clean | synthetic | ✅ | ✅ | ✅ | ✅ | 21.09s |
+| brakepads_messy | synthetic | ✅ | ✅ | ✅ | ❌ | 19.41s |
+| macbook_cable_clean | synthetic | ✅ | ✅ | ✅ | ❌ | 22.66s |
+| macbook_cable_messy | synthetic | ✅ | ✅ | ❌ | ❌ | 18.93s |
+| umbrella_clean | synthetic | ✅ | ✅ | ✅ | ✅ | 18.27s |
+| umbrella_messy | synthetic | ✅ | ✅ | ✅ | ✅ | 18.03s |
+
+What these runs show (full logs in `eval/smoke_results/failures.md`):
+
+- **Messy footage is where video wins.** On the dark, shaky clips the baseline's single middle frame came back as "ballpoint pen" (MacBook cable) or "garden-hose coupler" (aerator). The full pipeline got all 8 synthetic clips right.
+- **Right words, wrong product.** For a MacBook MagSafe cable, the baseline returns iPhone *wireless* MagSafe chargers, and for a cabinet hinge it returns 18-inch gate strap hinges. The keyword metric counts these as hits; the judge rejects them.
+- **Real, honest losses for the full pipeline:**
+  - *Flickering ceiling bulb*: diagnosis said "replacement LED bulb", but catalog search returned whole ceiling fixtures and the gate let them through.
+  - *Bulb-burnout demo*: Gemini correctly saw a DIY battery-and-filament rig and asked for the rig's parts (sockets, fuse holder). The label wanted "a bulb". Debatable label.
+  - *Espresso gasket*: it found gaskets, but only generic O-ring kits. The catalog has no group-head gasket for that machine.
+- **Where neither system works:**
+  - *Worn bike rim*: handlebar-cam ride footage where the rim failure isn't visible. Both systems guess, and the full one picks the chain.
+  - *Burnt blender motor*: the photo shows only the armature, and both systems return power-tool armatures.
+  - *Bosch hand-blender latch*: the full pipeline identifies the exact Bosch MaxoMixx model and the release-ring part, but Bosch doesn't sell that part (per the photo's own source description), so the catalog only has unrelated Bosch rings.
 
 ### Real messy phone clips
 
-_Pending: 20–30 clips filmed at the venue. Upload them at `/eval-upload?k=<EVAL_UPLOAD_KEY>` and run `eval/eval.py`._
+_Pending: 20–30 clips filmed at the venue (the number that counts)._  Upload them at `/eval-upload?k=<EVAL_UPLOAD_KEY>` and run `eval/eval.py`._
 
 **How to film the eval set (aim for 20–30 clips, 5–10 s each):**
 
@@ -121,6 +158,9 @@ _Pending: 20–30 clips filmed at the venue. Upload them at `/eval-upload?k=<EVA
 
 ## Where it breaks
 
+- **Huge phone videos.** 4K HEVC clips are shrunk in the browser to 720p at about 2 Mbps (MediaRecorder, max 15 s) before upload. Where MediaRecorder isn't available, the browser sends 8 JPEG keyframes instead. Keyframes are measurably worse: on a 68 MB 4K test clip, the full video found the MagSafe adapter, but 8 keyframes of the same clip were read as a pen.
+- **Catalog says no.** Some OEM parts aren't sold at all (e.g. the Bosch MaxoMixx latch), and some searches return whole fixtures when you need a bulb.
+
 - **No model number visible or spoken.** It falls back to a family ("MagSafe 1 or 2, 45–85 W") and says so in `uncertainties`. The ranking adds a "check before buying" note, but the user still has to confirm.
 - **Catalog coverage.** Shop's catalog is strong on consumer goods and weaker on OEM appliance and automotive parts. The pipeline then returns the closest whole-item replacement or a generic part (e.g. a universal aerator).
 - **Speed.** About 17–30 s end to end. Most of it is Gemini 4 video understanding (6–20 s, varies by call). Upload, search (~1 s) and the Decisions gate (~0.5 s) are cheap.
@@ -130,7 +170,7 @@ _Pending: 20–30 clips filmed at the venue. Upload them at `/eval-upload?k=<EVA
 
 ## Limitations
 
-- The smoke results use 8 synthetic clips. Real phone footage is the eval that counts.
+- The sample eval is small (17 clips, 4 of them photo-derived). Real phone footage filmed at the venue is the eval that counts.
 - The fit gate and the judge are both Gemini models, so their failure modes may correlate. The judge sees the ground-truth label, which the gate never does.
 - Search is US/USD by default (`search_catalog` context).
 - No accounts and no order history. One item per checkout.
@@ -144,5 +184,5 @@ _Pending: 20–30 clips filmed at the venue. Upload them at `/eval-upload?k=<EVA
 | 0:25–0:35 | Diagnosis card: part, spec chips (seen / heard / inferred), tap a timestamp to jump the video | "…finds the exact part and specs, and shows you where in the video it saw them." |
 | 0:35–0:45 | Top-3 cards with fit %, reasons and "check before buying" | "Shop catalog search by words *and* by a keyframe photo. The Gemini Decisions API scores the fit of every offer in half a second, and Gemini 4 picks the top 3." |
 | 0:45–0:52 | Tap **Buy now**, a real Shop checkout opens | "One tap to a real checkout. You pay on the merchant's page." |
-| 0:52–1:00 | Eval table: full vs baseline, plus one failure example | "On messy clips, one frame plus a search got N% right. Watching the whole video got M%. Here's where it still breaks." |
+| 0:52–1:00 | Eval table: full vs baseline, plus one failure example | "On messy clips, one frame plus a search picked a correct part 41% of the time. Watching the whole video: 65%, and 8 of 8 on the messiest synthetic clips. Here's where it still breaks." |
 

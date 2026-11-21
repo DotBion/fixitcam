@@ -8,3 +8,5 @@ eval/clips/*
 eval/results/
 eval/samples/*.mp4
 eval/samples/*.jpg
+!eval/samples/real_*.mp4
+!eval/samples/kitchen_*.mp4
