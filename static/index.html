@@ -46,6 +46,7 @@ input[type=text]{width:100%;margin-top:12px;background:#0f1216;border:1px solid 
 .why{font-size:14px;margin:8px 0 2px}.check{font-size:13px;color:var(--warn)}
 .prod .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .prod .btn{padding:10px 14px;font-size:15px}
+.shoplink{display:inline-block;margin-top:8px;font-size:13px;color:var(--mut);text-decoration:underline}
 .timings{font-size:12px;color:var(--mut);margin-top:14px;text-align:center}
 .err{background:#2a1416;border-color:#4a2226;color:#ffb4b4}
 footer{color:var(--mut);font-size:12px;text-align:center;margin-top:28px}
@@ -117,19 +118,21 @@ function renderResults(top,considered){
       <div><span class="price">${money(p.price_minor,p.currency)}</span>${fit}</div>
       <div class="meta">${esc(p.seller_name||p.shop)}${p.rating?` · ★ ${p.rating}${p.rating_count?` (${p.rating_count})`:''}`:''}</div>
       <div class="why">${esc(p.reason)}</div>${p.check?`<div class="check">⚠︎ ${esc(p.check)}</div>`:''}
-      <div class="actions"><button class="btn pri" data-i="${i}">Buy now</button>
-      ${p.product_url?`<a class="btn sec" href="${esc(p.product_url)}" target="_blank" rel="noopener">View</a>`:''}</div></div></div>`}).join('');
+      <div class="actions">${p.checkout_url?`<a class="btn pri" href="${esc(p.checkout_url)}" target="_blank" rel="noopener">Buy now</a>`:`<button class="btn pri" data-i="${i}">Buy now</button>`}
+      ${p.product_url?`<a class="btn sec" href="${esc(p.product_url)}" target="_blank" rel="noopener">View</a>`:''}</div>
+      ${p.checkout_url?`<a class="shoplink" href="#" data-i="${i}">or checkout with Shop</a>`:''}</div></div>`}).join('');
   $('#results').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>buy(top[+b.dataset.i],b));
+  $('#results').querySelectorAll('a.shoplink').forEach(a=>a.onclick=e=>{e.preventDefault();buy(top[+a.dataset.i],a)});
 }
 async function buy(p,btn){
   const w=window.open('about:blank','_blank'); // open synchronously so popup blockers allow it
-  btn.disabled=true;btn.textContent='Creating checkout…';
+  const label=btn.textContent; btn.disabled=true;btn.textContent='Creating checkout…';
   try{
     const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop:p.shop,variant_id:p.variant_id})});
     const j=await r.json(); if(!r.ok||!j.continue_url) throw new Error(j.error||'Checkout failed');
     if(w) w.location.href=j.continue_url; else location.href=j.continue_url; // URL used exactly as returned
     btn.textContent='Checkout opened ✓';
-  }catch(e){ if(w) w.close(); btn.textContent='Retry'; btn.disabled=false; alert(e.message) }
+  }catch(e){ if(w) w.close(); btn.textContent=label; btn.disabled=false; alert(e.message) }
 }
 function setProg(pct,text){ $('#prog').classList.remove('hidden'); if(pct!=null) $('#bar').style.width=pct+'%'; $('#progt').textContent=text||'' }
 $('#go').onclick=async()=>{

@@ -6,7 +6,7 @@ Point your phone at something broken (a frayed charger, a leaky faucet aerator, 
 Gemini 4 watches *and listens to* the clip, identifies the item, the broken part and the specs you need
 (connector, size, wattage, thread…), cites the timestamps it used, and gives a repair tip. Fix-It Cam then searches the live
 Shop catalog by **words and by a keyframe photo**, checks every offer's fit with the **Gemini Decisions API**, has Gemini 4 pick the top 3,
-and **Buy now** opens a real Shop checkout.
+and **Buy now** opens the merchant's real checkout, where guests can pay without a Shop account.
 
 > Built for the Gemini 4 NYC Hackathon. Theme: **Element 119** (video is the product), evaluated 5 Sigma-style against a single-frame baseline. Also targets the Shopify prize (real purchases through Shop MCP).
 
@@ -20,7 +20,8 @@ flowchart LR
   C -->|like: image| E[Shop MCP search_catalog<br/>photo + text]
   D & E --> F[Gemini Decisions API<br/>gemini-decision-1<br/>P(fits) per offer, one call]
   F --> G[Gemini 4 ranks top 3<br/>with reasons + what to check]
-  G --> H[Buy now → create_checkout<br/>→ continue_url opened unchanged]
+  G --> H[Buy now → offer checkout_url<br/>merchant checkout, guest OK]
+  G --> I[or: create_checkout<br/>→ continue_url, Shop sign-in]
 ```
 
 | Step | Model / tool | Typical latency |
@@ -29,7 +30,12 @@ flowchart LR
 | Search | Shop MCP `search_catalog` (3 text queries + 1 image query, parallel) | ~1 s |
 | Fit gate | Gemini Decisions API `gemini-decision-1` (one `noul` question per offer) | ~0.5 s |
 | Rank | `gemini-4-hydrogen`, thinking `low` | 2–6 s |
-| Checkout | Shop MCP `create_checkout` → `continue_url` | ~1 s |
+| Checkout | Offer `checkout_url` from `search_catalog` (instant), or `create_checkout` → `continue_url` | 0–1 s |
+
+**Two buy paths, both from Shop MCP:**
+
+1. **Buy now** (primary) opens the offer's `checkout_url` from `search_catalog` exactly as returned. It redirects to the merchant's Shop Pay checkout page. That page lets a guest check out (tested with an iPhone user agent), so a judge can buy without a Shop account.
+2. **"or checkout with Shop"** (secondary) calls `create_checkout` and opens its `continue_url` (`shop.app/checkouts/r/…`) unchanged. On a phone this path asks you to sign in to Shop. Buy now also falls back to it if an offer has no `checkout_url`.
 
 Shop rules we follow: products are fetched live on every request (no caching), merchant images load from their original URLs,
 product and checkout URLs are used exactly as returned, one merchant per checkout, and the shopper reviews and pays on the merchant's page.

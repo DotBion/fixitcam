@@ -135,6 +135,7 @@ def flatten_offers(payload: dict, source: str) -> list[dict]:
             "currency": price.get("currency", "USD"),
             "image_url": img,
             "product_url": v.get("url"),
+            "checkout_url": v.get("checkout_url"),  # merchant /buy link, used exactly as returned
             "seller_name": seller.get("name"),
             "shop": seller.get("domain"),
             "rating": rating.get("value"),
