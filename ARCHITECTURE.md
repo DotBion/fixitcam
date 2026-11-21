@@ -111,7 +111,9 @@ Results are fetched live per request and never cached. Merchant images are loade
 
 ## Buy paths
 
-1. **Primary: Buy now → offer `checkout_url`.** This is a plain `<a target="_blank">` to the `checkout_url` returned by `search_catalog`, **exactly as returned** (no parameter edits). It redirects to the merchant's Shop Pay checkout, which offers **"Check out as guest"**. This was confirmed on a real iPhone in Safari, and the page data has `checkoutAsGuest: VISIBLE` when fetched with an iPhone user agent. No server round-trip is needed.
+**Buy now** opens an in-app bottom sheet first. It shows the product image (`image_url` as returned), title, price, seller, the reason and the check note, a prominent **Checkout** button, and a small "or checkout with Shop" link. The checkout pages can't be embedded: the merchant `/buy` redirect and `shop.app` send `X-Frame-Options: DENY` and `frame-ancestors 'none'`, and the final checkout page only allows its own shop domains. So **Checkout** hands off with `window.open(checkout_url)`, or the same tab if the popup is blocked.
+
+1. **Primary: Checkout → offer `checkout_url`.** It opens the `checkout_url` returned by `search_catalog` **exactly as returned** (no parameter edits). It redirects to the merchant's Shop Pay checkout, which offers **"Check out as guest"**. This was confirmed on a real iPhone in Safari, and the page data has `checkoutAsGuest: VISIBLE` when fetched with an iPhone user agent. No server round-trip is needed.
 2. **Fallback: "or checkout with Shop" → `create_checkout` → `continue_url`.** The page opens a blank tab synchronously (to avoid popup blockers), calls `POST /api/checkout`, then sends that tab to `continue_url` unchanged. On phones this is a `shop.app` page that asks you to sign in. Buy now also uses this path if an offer has no `checkout_url`.
 
 There is one merchant per checkout. The shopper reviews and pays on the merchant's page. The app never completes a purchase.
