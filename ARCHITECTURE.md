@@ -203,3 +203,7 @@ sequenceDiagram
 | Decisions API error | The gate is skipped (`timings.gate_error`), and ranking still runs. |
 | Shop MCP / Gemini error | An `error` event is streamed and the UI shows the message. |
 | Offer has no `checkout_url` | Buy now falls back to `create_checkout`. |
+
+## Future work
+
+- **End-of-day closing report (Carbon).** Today's traces (diagnoses with confidence, Decisions fit-gate scores, rankings, buy/skip/checkout events, latencies) would be batched at closing time to `gemini-4-carbon` for deep reasoning: repeat failures and root causes, band-aid buys, spare parts to stock, where the app was unsure or wrong, a pre-service checklist, and a spend and overpricing summary. `gemini-4-hydrogen` stays the live path. **Not implemented.** The eval traces in `eval/results/*/results.json` are the intended first input. See PLAN.md, milestone 8.

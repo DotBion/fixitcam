@@ -29,6 +29,41 @@ The submission is a public GitHub repo (this one) plus a 1-minute demo video, **
 | 5 | **Rerun the eval on 20–30 real messy phone clips** filmed at the venue (`/eval-upload` → `eval/eval.py`); put the numbers in the README and demo script | ⏳ Remaining |
 | 6 | **Record the 1-minute demo video** (script in README) | ⏳ Remaining |
 | 7 | **Submit** (repo public, video, form) **by 5:00 PM ET**, aiming for 4:45 | ⏳ Remaining |
+| 8 (stretch) | **End-of-day closing report (Carbon)**: see below | 🟡 Stretch: build one screen only if the core demo and video are done by ~4 PM; otherwise pitch it as the next step |
+
+### Stretch milestone 8: End-of-day closing report (Carbon)
+
+**Idea:** when a restaurant closes, batch the day's full traces to **`gemini-4-carbon`**, the deep-reasoning tier according to Google's model docs, for one overnight analysis. **`gemini-4-hydrogen` stays the live, in-service path** (fast diagnosis and ranking), and the **Decisions API** stays the per-offer fit gate.
+
+**Traces per scan (what gets batched):**
+
+- the clip reference
+- the diagnosis JSON with `confidence` and `uncertainties`
+- the Decisions fit-gate scores per offer
+- the ranking (top 3 with reasons and checks)
+- user events: buy, skip, checkout opened (`checkout_url` vs Shop fallback), abandoned
+- per-stage latencies (`timings`)
+
+**Problems it addresses:**
+
+- Repeat equipment failures go unnoticed when each scan is handled on its own.
+- Rushed, wrong or overpriced part buys in the middle of service.
+- No maintenance log, so upkeep is reactive instead of preventive.
+- App reliability blind spots (the 5 Sigma theme): where the live path was unsure or wrong.
+
+**Nightly questions Carbon answers:**
+
+1. Which equipment failed or was scanned repeatedly, and what is the likely root cause?
+2. Were any buys band-aids for a deeper problem?
+3. Which spare parts should be stocked, given failure frequency and shipping time?
+4. Where was the app unsure or wrong (low-confidence diagnoses, overridden fit gates, abandoned checkouts), with clip references?
+5. A pre-service checklist for tomorrow.
+6. A spend summary, plus avoidable or overpriced buys compared with other sellers.
+
+**Scope for today:**
+
+- Only if the core demo and the 1-minute video are done by ~4 PM ET: build a single "closing report" screen that feeds **today's eval traces** (`eval/results/*/results.json`, `eval/smoke_results/results.json`) to `gemini-4-carbon` and renders the six answers.
+- Otherwise it is **not built**. It goes in the pitch and the README as the next step.
 
 ### Results so far (17 public sample clips: 8 synthetic, 5 real household videos, 4 restaurant photo-pans)
 
