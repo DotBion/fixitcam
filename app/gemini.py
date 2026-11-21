@@ -12,6 +12,12 @@ from google.genai import types
 IDENTIFY_MODEL = os.getenv("IDENTIFY_MODEL", "gemini-4-hydrogen")
 RANK_MODEL = os.getenv("RANK_MODEL", "gemini-4-hydrogen")
 DECISION_MODEL = os.getenv("DECISION_MODEL", "gemini-decision-1")
+DIAGNOSE_THINKING = os.getenv("DIAGNOSE_THINKING", "")  # "", "low", "high"
+RANK_THINKING = os.getenv("RANK_THINKING", "low")
+
+
+def _thinking(level: str):
+    return types.ThinkingConfig(thinking_level=level) if level else None
 
 _client: genai.Client | None = None
 
@@ -93,6 +99,7 @@ async def diagnose(media_part, extra_note: str = "", model: str | None = None) -
             response_mime_type="application/json",
             response_json_schema=DIAGNOSIS_SCHEMA,
             temperature=0.2,
+            thinking_config=_thinking(DIAGNOSE_THINKING),
         ),
     )
     return json.loads(r.text)
@@ -146,7 +153,8 @@ async def rank(diag: dict, candidates: list[dict], k: int = 3, model: str | None
     r = await client().aio.models.generate_content(
         model=model or RANK_MODEL, contents=prompt,
         config=types.GenerateContentConfig(response_mime_type="application/json",
-                                           response_json_schema=RANK_SCHEMA, temperature=0.1))
+                                           response_json_schema=RANK_SCHEMA, temperature=0.1,
+                                           thinking_config=_thinking(RANK_THINKING)))
     picks = json.loads(r.text).get("picks", [])
     seen, out = set(), []
     for p in picks:
