@@ -10,6 +10,11 @@ and **Buy now** opens the merchant's real checkout, where guests can pay without
 
 > Built for the Gemini 4 NYC Hackathon. Theme: **Element 119** (video is the product), evaluated 5 Sigma-style against a single-frame baseline. Also targets the Shopify prize (real purchases through Shop MCP).
 
+## Docs
+
+- [PLAN.md](PLAN.md): goal, themes targeted, milestones (done vs remaining), risks and mitigations, judging-criteria mapping.
+- [ARCHITECTURE.md](ARCHITECTURE.md): components, endpoints, Gemini and Shop MCP details, data shapes, buy paths, sequence diagram, latency, eval harness, deployment, security, failure modes.
+
 ## How it works
 
 ```mermaid
@@ -51,7 +56,7 @@ cp .env.example .env      # put your GEMINI_API_KEY in .env
 Requires Python 3.11+ and `ffmpeg` (for the keyframe photo search; without it the app still works with text search).
 
 **Let judges try it from their phones:** on a laptop with normal internet, run in a second terminal
-`cloudflared tunnel --url http://localhost:8000` (or `ngrok http 8000`) and share the printed https URL.
+`cloudflared tunnel --protocol http2 --url http://localhost:8000` (or `ngrok http 8000`) and share the printed https URL.
 Phone camera capture needs HTTPS, which the tunnel provides.
 
 **Collect eval clips from a phone:** set `EVAL_UPLOAD_KEY` in `.env`, then open `/eval-upload?k=<key>`. Clips land in `eval/clips/` with `labels.json` (git-ignored).
@@ -70,7 +75,8 @@ Config (env): `IDENTIFY_MODEL` (default `gemini-4-hydrogen`), `RANK_MODEL`, `DEC
 - `app/gemini.py`: diagnosis schema and prompt, Decisions fit gate, ranking
 - `app/shop_mcp.py`: plain HTTP JSON-RPC client for Shop MCP (protocol `2026-07-28`, stateless)
 - `app/pipeline.py`: keyframe extraction, multi-query search with merge and dedupe, end-to-end `run()`
-- `app/server.py`: FastAPI with `/api/analyze` (streams NDJSON progress events), `/api/checkout`, `/api/health`
+- `app/server.py`: FastAPI with `/api/analyze` (streams NDJSON progress events; accepts a video, a photo or keyframes), `/api/checkout`, `/api/health`, `/eval-upload`
+- `static/upload.js`: in-browser shrink of big clips (720p re-encode or keyframe fallback) and XHR upload with progress
 - `static/index.html`: mobile-first single-page app (film, upload, diagnosis with tap-to-seek evidence timestamps, product cards, Buy)
 
 ## Evaluation (5 Sigma-style: messy inputs vs a simple baseline)
