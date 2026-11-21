@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0f12">
+<title>Fix-It Cam — film it, fix it</title>
+<style>
+:root{--bg:#0d0f12;--card:#161a20;--line:#252b34;--fg:#eef1f5;--mut:#9aa4b2;--acc:#ff7a1a;--ok:#35c486;--warn:#f2b84b;--r:16px}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 16px 80px}
+header{display:flex;align-items:center;gap:10px;margin:4px 0 18px}
+.logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--acc),#ffb347);display:grid;place-items:center;font-size:20px}
+h1{font-size:22px;margin:0;letter-spacing:-.02em}h1 small{display:block;font-size:13px;color:var(--mut);font-weight:500;letter-spacing:0}
+.hero{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.hero p{margin:0 0 14px;color:var(--mut)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{appearance:none;border:0;border-radius:12px;padding:14px 18px;font-weight:650;font-size:16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.btn.pri{background:var(--acc);color:#1a0d00;flex:1;justify-content:center}
+.btn.sec{background:#222833;color:var(--fg)}
+.btn:disabled{opacity:.5;cursor:default}
+input[type=text]{width:100%;margin-top:12px;background:#0f1216;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:11px 12px;font-size:15px}
+#preview{margin-top:14px;display:none}#preview video,#preview img{width:100%;max-height:340px;object-fit:contain;background:#000;border-radius:12px}
+.stages{margin:16px 0 0;padding:0;list-style:none}
+.stages li{display:flex;align-items:center;gap:10px;padding:7px 0;color:var(--mut);font-size:14px}
+.stages li .dot{width:10px;height:10px;border-radius:50%;background:#333;flex:none}
+.stages li.on{color:var(--fg)}.stages li.on .dot{background:var(--acc);animation:p 1s infinite}
+.stages li.done .dot{background:var(--ok)}
+@keyframes p{50%{opacity:.35}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-top:16px}
+.k{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px}
+.diag h2{margin:0 0 4px;font-size:20px}.diag .part{color:var(--acc);font-weight:650}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chip{background:#20262f;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:13px}
+.chip b{font-weight:600;color:var(--mut);margin-right:4px}.chip i{font-style:normal;font-size:11px;color:var(--mut);margin-left:4px}
+.ev{display:flex;gap:8px;font-size:14px;margin:4px 0}.ev a{color:var(--acc);font-variant-numeric:tabular-nums;cursor:pointer;flex:none}
+.tip{background:#1d2418;border:1px solid #2c3a22;border-radius:12px;padding:10px 12px;margin-top:10px;font-size:14px}
+.conf{font-size:13px;color:var(--mut)}
+.prod{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:start}
+.prod img{width:96px;height:96px;object-fit:cover;border-radius:12px;background:#fff}
+.prod h3{font-size:15px;margin:0 0 4px;line-height:1.3}
+.rank{display:inline-block;background:var(--acc);color:#1a0d00;font-weight:800;border-radius:7px;padding:0 7px;margin-right:6px;font-size:13px}
+.meta{font-size:13px;color:var(--mut)}.price{font-size:18px;font-weight:750;color:var(--fg)}
+.fit{display:inline-block;font-size:12px;border-radius:6px;padding:1px 7px;margin-left:6px;background:#173126;color:var(--ok)}
+.fit.mid{background:#33290f;color:var(--warn)}
+.why{font-size:14px;margin:8px 0 2px}.check{font-size:13px;color:var(--warn)}
+.prod .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.prod .btn{padding:10px 14px;font-size:15px}
+.timings{font-size:12px;color:var(--mut);margin-top:14px;text-align:center}
+.err{background:#2a1416;border-color:#4a2226;color:#ffb4b4}
+footer{color:var(--mut);font-size:12px;text-align:center;margin-top:28px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<main>
+  <header><div class="logo">🔧</div><h1>Fix-It Cam<small>Film the broken thing. Gemini 4 finds the part. Buy it in one tap.</small></h1></header>
+
+  <section class="hero">
+    <p>Point your camera at what's broken for 5–10 seconds. Show labels, connectors and the damage, and say anything you know out loud.</p>
+    <div class="btns">
+      <label class="btn pri" for="cam">🎥 Film it</label>
+      <label class="btn sec" for="pick">⬆️ Upload</label>
+    </div>
+    <input id="cam" class="hidden" type="file" accept="video/*" capture="environment">
+    <input id="pick" class="hidden" type="file" accept="video/*,image/*">
+    <input id="note" type="text" placeholder="Optional: anything we can't see (e.g. 'fits a 2015 MacBook Pro')">
+    <div id="preview"></div>
+    <div class="btns" style="margin-top:12px"><button id="go" class="btn pri" disabled>Diagnose &amp; find the part</button></div>
+    <ul class="stages" id="stages"></ul>
+  </section>
+
+  <section id="diag"></section>
+  <section id="results"></section>
+  <div id="timings" class="timings"></div>
+  <footer>Live products via Shop MCP • checkouts are real: you review &amp; pay on the merchant's page • Powered by Gemini 4</footer>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+let file=null, videoEl=null;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function pickFile(f){ if(!f) return; file=f; const p=$('#preview'); p.style.display='block';
+  const url=URL.createObjectURL(f);
+  if(f.type.startsWith('image/')){p.innerHTML=`<img src="${url}">`;videoEl=null}
+  else {p.innerHTML=`<video src="${url}" controls playsinline muted></video>`;videoEl=p.querySelector('video')}
+  $('#go').disabled=false; $('#diag').innerHTML='';$('#results').innerHTML='';$('#timings').textContent='';$('#stages').innerHTML='';
+}
+$('#cam').onchange=e=>pickFile(e.target.files[0]);
+$('#pick').onchange=e=>pickFile(e.target.files[0]);
+const ORDER=['upload','diagnose','search','gate','rank'];
+function stage(name,label){
+  const ul=$('#stages'); [...ul.children].forEach(li=>{li.classList.remove('on');li.classList.add('done')});
+  const li=document.createElement('li');li.className='on';li.dataset.s=name;li.innerHTML=`<span class="dot"></span>${esc(label)}`;ul.appendChild(li);
+}
+function finishStages(){[...$('#stages').children].forEach(li=>{li.classList.remove('on');li.classList.add('done')})}
+function seek(t){ if(!videoEl) return; const [m,s]=String(t).split(':').map(Number); videoEl.currentTime=(m||0)*60+(s||0); videoEl.play(); videoEl.scrollIntoView({behavior:'smooth',block:'center'}) }
+function renderDiag(d){
+  const specs=(d.specs||[]).map(s=>`<span class="chip"><b>${esc(s.name)}</b>${esc(s.value)}<i>${esc(s.source)}</i></span>`).join('');
+  const ev=(d.evidence||[]).map(e=>`<div class="ev"><a onclick="seek('${esc(e.t)}')">▶ ${esc(e.t)}</a><span>${esc(e.observation)}</span></div>`).join('');
+  const unc=(d.uncertainties||[]).length?`<div class="conf" style="margin-top:8px">Not sure about: ${esc(d.uncertainties.join(' · '))}</div>`:'';
+  $('#diag').innerHTML=`<div class="card diag"><div class="k">Diagnosis</div>
+    <h2>${esc(d.item)}</h2><div><span class="part">${esc(d.broken_part)}</span> — ${esc(d.failure)}</div>
+    <div class="chips">${specs}</div>${ev}
+    <div class="tip">🛠️ ${esc(d.repair_tip)}</div>
+    <div class="conf" style="margin-top:8px">Buy: <b>${esc(d.replace)}</b> · confidence ${Math.round((d.confidence||0)*100)}%</div>${unc}</div>`;
+}
+function money(m,c){return m==null?'':new Intl.NumberFormat('en-US',{style:'currency',currency:c||'USD'}).format(m/100)}
+function renderResults(top,considered){
+  if(!top.length){$('#results').innerHTML=`<div class="card">No matching part found in the live catalog. Try a clip that shows the label or connector up close.</div>`;return}
+  $('#results').innerHTML=`<div class="k" style="margin-top:22px">Top ${top.length} replacements · from ${considered} live offers</div>`+top.map((p,i)=>{
+    const fit=p.fit!=null?`<span class="fit ${p.fit<0.6?'mid':''}">fit ${Math.round(p.fit*100)}%</span>`:'';
+    const img=p.image_url?`<img src="${esc(p.image_url)}" alt="" referrerpolicy="no-referrer" loading="lazy">`:'<div></div>';
+    return `<div class="card prod">${img}<div>
+      <h3><span class="rank">${i+1}</span>${esc(p.title)}</h3>
+      <div><span class="price">${money(p.price_minor,p.currency)}</span>${fit}</div>
+      <div class="meta">${esc(p.seller_name||p.shop)}${p.rating?` · ★ ${p.rating}${p.rating_count?` (${p.rating_count})`:''}`:''}</div>
+      <div class="why">${esc(p.reason)}</div>${p.check?`<div class="check">⚠︎ ${esc(p.check)}</div>`:''}
+      <div class="actions"><button class="btn pri" data-i="${i}">Buy now</button>
+      ${p.product_url?`<a class="btn sec" href="${esc(p.product_url)}" target="_blank" rel="noopener">View</a>`:''}</div></div></div>`}).join('');
+  $('#results').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>buy(top[+b.dataset.i],b));
+}
+async function buy(p,btn){
+  const w=window.open('about:blank','_blank'); // open synchronously so popup blockers allow it
+  btn.disabled=true;btn.textContent='Creating checkout…';
+  try{
+    const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shop:p.shop,variant_id:p.variant_id})});
+    const j=await r.json(); if(!r.ok||!j.continue_url) throw new Error(j.error||'Checkout failed');
+    if(w) w.location.href=j.continue_url; else location.href=j.continue_url; // URL used exactly as returned
+    btn.textContent='Checkout opened ✓';
+  }catch(e){ if(w) w.close(); btn.textContent='Retry'; btn.disabled=false; alert(e.message) }
+}
+$('#go').onclick=async()=>{
+  if(!file) return; $('#go').disabled=true; $('#stages').innerHTML='';$('#diag').innerHTML='';$('#results').innerHTML='';$('#timings').textContent='';
+  const fd=new FormData(); fd.append('file',file); fd.append('note',$('#note').value);
+  stage('send','Uploading…');
+  try{
+    const r=await fetch('/api/analyze',{method:'POST',body:fd});
+    if(!r.ok){throw new Error((await r.json().catch(()=>({}))).detail||('HTTP '+r.status))}
+    const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
+    for(;;){const {value,done}=await rd.read(); if(done)break; buf+=dec.decode(value,{stream:true});
+      let i; while((i=buf.indexOf('\n'))>=0){const line=buf.slice(0,i);buf=buf.slice(i+1); if(!line.trim())continue; handle(JSON.parse(line))}}
+  }catch(e){ $('#results').innerHTML=`<div class="card err">${esc(e.message)}</div>` }
+  finishStages(); $('#go').disabled=false;
+};
+function handle(ev){
+  if(ev.event==='stage') stage(ev.stage,ev.label);
+  else if(ev.event==='diagnosis') renderDiag(ev.diagnosis);
+  else if(ev.event==='results'){ renderResults(ev.top,ev.considered); const t=ev.timings;
+    $('#timings').textContent=`upload ${t.upload_s}s · Gemini 4 diagnosis ${t.diagnose_s}s · Shop search ${t.search_s}s · Decisions gate ${t.gate_s??'–'}s · rank ${t.rank_s}s · total ${t.total_s}s` }
+  else if(ev.event==='error') $('#results').innerHTML=`<div class="card err">Something went wrong: ${esc(ev.message)}</div>`;
+}
+</script>
+</body>
+</html>
